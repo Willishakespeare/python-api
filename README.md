@@ -1,6 +1,6 @@
 # python-api
 
-Create User /api/user/register
+Create User POST /api/user/register
 {
 email
 password
@@ -8,13 +8,13 @@ fullname
 country
 }
 
-Login User /api/user/login
+Login User POST /api/user/login
 {
 email
 password
 }
 
-Auth User /api/user/auth
+Auth User GET /api/user/auth
 
 header
   bearer
