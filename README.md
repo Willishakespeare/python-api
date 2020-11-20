@@ -15,6 +15,5 @@ password
 }
 
 Auth User GET /api/user/auth
-
 header
   bearer
