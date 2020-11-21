@@ -3,6 +3,7 @@ from flask_pymongo import PyMongo
 import jwt
 from werkzeug.security import generate_password_hash,check_password_hash
 from bson import json_util
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 app.config['MONGO_URI']='mongodb+srv://root:root@cluster0.b0qwy.azure.mongodb.net/pythonapimongodb?retryWrites=true&w=majority'
@@ -30,7 +31,7 @@ def create_user():
                     'country': country,
                     'skills': []
                 })
-                jwt_encode = jwt.encode({'email': email,'password': hash_password,'fullname': fullname,'country': country,'skills':[]}, 'secret', algorithm='HS256')
+                jwt_encode = jwt.encode({'id':str(id),'email': email,'password': hash_password,'fullname': fullname,'country': country,'skills':[]}, 'secret', algorithm='HS256')
                 return jwt_encode
         else:
          return {'menssage': 'Please Send All Inputs'}    
@@ -47,7 +48,7 @@ def login_user():
             if userExist:
                 check_password = check_password_hash(userExist['password'],password)
                 if check_password:
-                    jwt_encode = jwt.encode({'email': userExist['email'],'password': userExist['password'],'fullname': userExist['fullname'],'country': userExist['country'],'skills':userExist['skills']}, 'secret', algorithm='HS256')
+                    jwt_encode = jwt.encode({'id': str(userExist['_id']),'email': userExist['email'],'password': userExist['password'],'fullname': userExist['fullname'],'country': userExist['country'],'skills':userExist['skills']}, 'secret', algorithm='HS256')
                     return jwt_encode
                 else:
                     return "The password is incorrect"
@@ -68,6 +69,70 @@ def auth_user():
         else: 
             return {'menssage':'Incorrect Credencials'}
             
+@app.route('/api/skills/register', methods=['POST'])
+def create_skill():
+        # Auth User
+        bearer = request.headers.get('bearer')
+        if bearer:
+            jwt_decode = jwt.decode(bearer, 'secret', algorithms=['HS256'])
+            if jwt_decode:
+                skill = request.json['skill']
+                skillExist = mongo.db.skills.find_one({'name':skill})
+                if skillExist:
+                    return {'menssage': 'Skill Exist'}
+                else:
+                    mongo.db.skills.insert_one({
+                    'name': skill
+                })
+                    return {'menssage': 'Skill Agreed'}
+            else:
+                 return {'menssage':'You Need are Logged'}
+        else: 
+            return {'menssage':'Incorrect Credencials'}
+
+@app.route('/api/skills', methods=['GET'])
+def get_skills():
+        # Auth User
+        bearer = request.headers.get('bearer')
+        if bearer:
+            jwt_decode = jwt.decode(bearer, 'secret', algorithms=['HS256'])
+            if jwt_decode:
+                skills = mongo.db.skills.find()
+                response = json_util.dumps(skills)
+                return Response(response, mimetype='application/json')
+            else:
+                 return {'menssage':'You Need are Logged'}
+        else: 
+            return {'menssage':'Incorrect Credencials'}
+@app.route('/api/user/skills', methods=['POST'])
+def addSkill_user():
+        # Auth User
+        bearer = request.headers.get('bearer')
+        if bearer:
+            jwt_decode = jwt.decode(bearer, 'secret', algorithms=['HS256'])
+            if jwt_decode:
+                idUser = request.json['id']
+                skill = request.json['skill']
+                skillExist = mongo.db.skills.find_one({'name':skill})
+                if skillExist: 
+                   userExist = mongo.db.users.find_one({'_id': ObjectId(idUser)})
+                   tempSkillsUser = userExist['skills']
+                   existSkillUser = False
+                   for item in tempSkillsUser:
+                       if item['name'] == skill:
+                           existSkillUser = True
+                   if existSkillUser:
+                       return {'menssage':'You already have that skill'}
+                   else:
+                        tempSkillsUser.append({'name': skill})
+                        userUpdate = mongo.db.users.find_one_and_update({'_id': ObjectId(idUser)},{"$set":{'skills': tempSkillsUser}},upsert=True)
+                        response = json_util.dumps(userUpdate)
+                        print(tempSkillsUser)
+                        return {'menssage':'Added Skill User','data': response} 
+                else:
+                    return {'menssage':'Skill not Exist'}
+        else: 
+            return {'menssage':'Incorrect Credencials'}
 
 if __name__ == "__main__":
     app.run(debug=True)
