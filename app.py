@@ -6,7 +6,7 @@ from bson import json_util
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-app.config['MONGO_URI']='mongodb+srv://root:root@cluster0.b0qwy.azure.mongodb.net/pythonapimongodb?retryWrites=true&w=majority'
+app.config['MONGO_URI']='urlMongo'
 mongo = PyMongo(app)
 
 @app.route('/api/user/register', methods=['POST'])
